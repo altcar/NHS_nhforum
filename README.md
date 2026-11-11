@@ -282,8 +282,8 @@ Posting never needs an account. Email only proves a human can read an inbox, whi
 claim a handle — no password is created.
 
 ```bash
-npx wrangler secret put GMAIL_USER          -c wrangler.nhforum.jsonc
-npx wrangler secret put GMAIL_APP_PASSWORD  -c wrangler.nhforum.jsonc
+npx wrangler secret put GMAIL_USER          -c wrangler.jsonc
+npx wrangler secret put GMAIL_APP_PASSWORD  -c wrangler.jsonc
 ```
 
 A Gmail App Password (2-Step Verification required) sent over `smtp.gmail.com:465` using a raw TLS
@@ -293,7 +293,7 @@ socket. Cloudflare's own outbound email is a paid feature; this stays free. With
 ## Moderation
 
 ```bash
-npx wrangler secret put ADMIN_TOKEN -c wrangler.nhforum.jsonc
+npx wrangler secret put ADMIN_TOKEN -c wrangler.jsonc
 
 curl -X POST https://nhforum.hheylau.workers.dev/api/admin/rules \
   -H "authorization: Bearer $ADMIN_TOKEN" \

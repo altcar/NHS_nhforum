@@ -69,7 +69,7 @@ jobs:
             echo "::notice::skipping deploy (no token)"
             exit 0
           fi
-          npx wrangler deploy -c wrangler.nhforum.jsonc
+          npx wrangler deploy -c wrangler.jsonc
 
       - name: Deploy nhs-epqsocketio
         env:

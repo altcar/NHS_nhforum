@@ -13,9 +13,9 @@
     "smoke:realtime": "node scripts/smoke-realtime.mjs",
     "build": "node scripts/build-assets.mjs",
     "d1:init": "wrangler d1 execute nhforum --remote --file worker/schema.sql",
-    "deploy": "node scripts/build-assets.mjs && wrangler deploy -c wrangler.nhforum.jsonc",
+    "deploy": "node scripts/build-assets.mjs && wrangler deploy -c wrangler.jsonc",
     "deploy:realtime": "node scripts/build-assets.mjs && wrangler deploy -c wrangler.realtime.jsonc",
-    "dev": "node scripts/build-assets.mjs && wrangler dev -c wrangler.nhforum.jsonc",
+    "dev": "node scripts/build-assets.mjs && wrangler dev -c wrangler.jsonc",
     "dev:realtime": "node scripts/build-assets.mjs && wrangler dev -c wrangler.realtime.jsonc"
   },
   "devDependencies": {
