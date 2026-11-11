@@ -34,9 +34,15 @@ jobs:
         run: npm test
 
       - name: Deployment still answers
-        # Best-effort: the deploy from the same push may still be in flight.
-        continue-on-error: true
+        # Read-only, and retried because the deploy from this push may still be
+        # in flight. If the Worker lands without its script, /api/head 404s and
+        # this fails the run instead of leaving a silently broken site.
         run: |
-          sleep 20
-          node scripts/smoke.mjs https://nhforum.hheylau.workers.dev
-          node scripts/smoke-realtime.mjs https://nhs-epqsocketio.hheylau.workers.dev
+          for attempt in 1 2 3 4 5 6; do
+            if node scripts/health.mjs; then
+              exit 0
+            fi
+            echo "attempt $attempt failed; waiting for the deploy"
+            sleep 15
+          done
+          exit 1
