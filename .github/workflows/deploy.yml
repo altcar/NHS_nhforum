@@ -81,3 +81,17 @@ jobs:
             exit 0
           fi
           npx wrangler deploy -c wrangler.realtime.jsonc
+
+      # A deploy can succeed while leaving the Worker without its script: the
+      # assets upload, every /api route 404s, and nothing reports an error.
+      # Smoke tests assert the API actually answers, so that becomes a red run.
+      - name: Verify the deployment
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::notice::skipping verification (no token)"
+            exit 0
+          fi
+          node scripts/smoke.mjs https://nhforum.hheylau.workers.dev
+          node scripts/smoke-realtime.mjs https://nhs-epqsocketio.hheylau.workers.dev

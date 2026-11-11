@@ -257,9 +257,20 @@ npm run deploy            # nhforum
 npm run deploy:realtime   # nhs-epqsocketio
 ```
 
-Both Workers are connected to this repository on `main`, so a push builds and deploys. The build
-step is `npm ci && node scripts/build-assets.mjs` (the browser needs the same ledger sources the
-Worker uses, so they are copied rather than bundled).
+Pushes to `main` run `.github/workflows/deploy.yml`: tests, browser asset build, D1 schema, both
+Workers, then the smoke tests in `scripts/`. It needs two repository secrets —
+`CLOUDFLARE_API_TOKEN` (API token template "Edit Cloudflare Workers") and `CLOUDFLARE_ACCOUNT_ID`.
+Without them the workflow stays green and skips, so a fresh clone never shows a false failure.
+
+**Workers Builds is deliberately not enabled.** A Git connection created through the API cannot
+carry the GitHub App grant (`grant_id` stays null), so builds fail at initialisation with
+`unable to verify Worker` — and each failed attempt redeploys the Worker *without its script*,
+which takes every `/api` route down while the static pages keep working. If you prefer the native
+path, connect it from the dashboard (Workers & Pages → the Worker → Settings → Builds → Connect)
+and remove the deploy steps from the workflow, so exactly one thing deploys.
+
+`assets.run_worker_first` is set for `/api/*` and `/auth/*`, so those always reach the Worker and
+everything else is served straight from the asset layer without an invocation.
 
 Free tier is enough: 100k requests/day, 100k Durable Object requests/day, 5 GB storage. The board
 uses a few percent of that at school scale, and checkpoints are extended at most once a minute so
