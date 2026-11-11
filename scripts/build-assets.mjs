@@ -26,3 +26,21 @@ for (const target of targets) {
   }
   console.log(`copied ${files.length} ledger modules → ${target}`)
 }
+
+/**
+ * Inside Workers Builds, also deploy the realtime Worker.
+ *
+ * A repository has one default wrangler config, so the connected build can only
+ * ever deploy one Worker by itself. This runs the second deploy from the same
+ * build. It is deliberately non-fatal: if the environment has no credentials
+ * for the second Worker, the main deploy must still succeed.
+ */
+if (process.env.WORKERS_CI === '1' || process.env.CI === 'true') {
+  const { spawnSync } = await import('node:child_process')
+  console.log('CI build detected — deploying the realtime Worker as well')
+  const result = spawnSync('npx', ['wrangler', 'deploy', '-c', 'wrangler.realtime.jsonc'], {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  })
+  console.log(`realtime deploy exit code: ${result.status ?? 'unknown'}`)
+}
