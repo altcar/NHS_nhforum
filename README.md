@@ -274,8 +274,20 @@ races the deploy from the same push, so treat it as a liveness gate rather than 
 newest commit is live — `scripts/smoke.mjs` is the thorough check, and it appends blocks, so run it
 by hand.
 
-Only `nhforum` is connected to the repository. `nhs-epqsocketio` is deployed with
-`npm run deploy:realtime`.
+Both Workers are connected to this repository on `main` and deploy on every push:
+
+| Worker | Deploy command |
+|---|---|
+| `nhforum` | `npx wrangler deploy` (uses `wrangler.jsonc`) |
+| `nhs-epqsocketio` | `npx wrangler deploy -c wrangler.realtime.jsonc` |
+
+The deploy command is per-Worker and lives in the dashboard (Settings → Builds), because a
+repository can only have one default config. `wrangler.jsonc` must stay the default name: it is
+what the first Worker's config-less deploy picks up.
+
+The dashboard may warn that the Worker name in `wrangler.jsonc` (`nhforum`) does not match
+`nhs-epqsocketio`. That is expected — the second Worker deploys with an explicit `-c` — and the
+offer to auto-open a PR to "fix" it can be ignored.
 
 The D1 schema is not applied automatically:
 
