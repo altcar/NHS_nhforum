@@ -38,6 +38,7 @@ jobs:
         # in flight. If the Worker lands without its script, /api/head 404s and
         # this fails the run instead of leaving a silently broken site.
         run: |
+          sleep 20
           for attempt in 1 2 3 4 5 6; do
             if node scripts/health.mjs; then
               exit 0
