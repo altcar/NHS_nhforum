@@ -1,0 +1,42 @@
+name: test
+
+# Deployment is handled by the Cloudflare Git integration: a push to main runs a
+# config-less `wrangler deploy`, which picks up wrangler.jsonc. It has no build
+# step, so anything the site needs at runtime must be committed — that is why
+# web/ledger/ is in git and test/assets.test.js guards it.
+#
+# This workflow exists to catch what that integration does not run: the tests.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Deployment still answers
+        # Best-effort: the deploy from the same push may still be in flight.
+        continue-on-error: true
+        run: |
+          sleep 20
+          node scripts/smoke.mjs https://nhforum.hheylau.workers.dev
+          node scripts/smoke-realtime.mjs https://nhs-epqsocketio.hheylau.workers.dev
