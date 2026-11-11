@@ -7,6 +7,7 @@ Thumbs.db
 .env
 .dev.vars
 
-# generated: scripts/build-assets.mjs copies ledger/ into each static dir
-web/ledger/
-realtime/web/ledger/
+# web/ledger/ and realtime/web/ledger/ are generated copies of ledger/.
+# They ARE committed: a push-triggered deploy uploads the repository as-is and
+# runs no build step, so the browser verifier must exist in git.
+# test/assets.test.js fails if the copies drift from the source.
