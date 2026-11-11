@@ -84,6 +84,28 @@ the board stays fully usable.
 
 Note: Cloudflare blocks outbound port 25. 465/587 are fine.
 
+## Moderation
+
+Hides are blocks, never deletions. A `rules` block signed by the board's root key appoints
+moderators; a moderator then signs `mod.hide` with **their own** key. Readers recompute the
+moderator set from the log, so authority is derived rather than stored.
+
+```bash
+# 1. choose an admin token for appointing moderators (this is not a user password)
+npx wrangler secret put ADMIN_TOKEN -c wrangler.nhforum.jsonc
+
+# 2. copy your public key from the board: click the "anon-…" chip
+# 3. appoint yourself (or someone else)
+curl -X POST https://nhforum.hheylau.workers.dev/api/admin/rules \
+  -H "authorization: Bearer $ADMIN_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"mods":["<base64url public key>"]}'
+```
+
+Reload the board: the hide control appears on every post. `scripts/moderation-demo.mjs` runs the
+whole flow — generate a moderator key, appoint it, hide a post, verify the chain.
+
+
 ## What this does and does not give you
 
 | Property | Status |
