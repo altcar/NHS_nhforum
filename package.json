@@ -19,6 +19,7 @@
     "dev:realtime": "node scripts/build-assets.mjs && wrangler dev -c wrangler.realtime.jsonc"
   },
   "devDependencies": {
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.160.0"
   }
 }
