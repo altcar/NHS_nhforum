@@ -46,6 +46,7 @@ const state = {
   hashBySeq: new Map(),
   byHash: new Map(),
   hidden: new Map(),
+  mods: new Set(),
   handles: new Map(),
   fingerprints: new Map(),
   replyTo: null,
@@ -191,6 +192,7 @@ function render() {
     if (!isHidden) {
       const footer = document.createElement('div')
       footer.className = 'postfooter'
+
       const replyButton = document.createElement('button')
       replyButton.type = 'button'
       replyButton.textContent = 'reply'
@@ -201,6 +203,28 @@ function render() {
         el.body.focus()
       })
       footer.append(replyButton)
+
+      if (state.mods.has(state.identity?.author)) {
+        const hideButton = document.createElement('button')
+        hideButton.type = 'button'
+        hideButton.textContent = 'hide'
+        hideButton.title = 'signed moderation: the post stays in the chain'
+        hideButton.addEventListener('click', async () => {
+          const reason = window.prompt('Reason for hiding (visible to everyone, optional):') ?? ''
+          hideButton.disabled = true
+          try {
+            await publishRaw('mod.hide', reason ? { target: hash, reason } : { target: hash })
+            await verifyAll()
+          } catch (err) {
+            el.hint.textContent = String(err.message ?? err)
+            el.hint.style.color = 'var(--bad)'
+          } finally {
+            hideButton.disabled = false
+          }
+        })
+        footer.append(hideButton)
+      }
+
       item.append(footer)
     }
 
@@ -273,6 +297,14 @@ async function verifyAll({ fresh = false } = {}) {
     if (block.type === 'mod.restore') state.hidden.delete(block.payload.target)
   }
 
+  // Authority is carried in the log: genesis author is root, `rules` replaces
+  // the moderator set wholesale. Recomputing it from blocks is the whole point.
+  state.mods = new Set()
+  for (const block of blocks) {
+    if (block.type === 'genesis') state.mods = new Set([block.author])
+    if (block.type === 'rules') state.mods = new Set(block.payload.mods)
+  }
+
   const result = await verifyChain(blocks)
   state.problems = result.problems ?? []
 
@@ -323,15 +355,18 @@ async function verifyAll({ fresh = false } = {}) {
 
   render()
   refreshWho()
+
+  if (state.mods.has(state.identity?.author)) {
+    el.hint.textContent = 'you are a moderator · hides are signed blocks, not deletions'
+  }
 }
 
 /* ------------------------------------------------------------------ post */
 
-async function publish(text, type = 'post', to = null) {
+async function publishRaw(type, payload) {
   if (!state.identity) throw new Error('no identity yet')
   for (let attempt = 0; attempt < 3; attempt++) {
     const next = await api('/api/next')
-    const payload = type === 'reply' ? { body: text, to } : { body: text }
     const draft = {
       v: 1,
       board: BOARD,
@@ -362,6 +397,10 @@ async function publish(text, type = 'post', to = null) {
     throw new Error(error.error ?? `post failed (${response.status})`)
   }
   throw new Error('someone else posted first three times; try again')
+}
+
+async function publish(text, type = 'post', to = null) {
+  return publishRaw(type, type === 'reply' ? { body: text, to } : { body: text })
 }
 
 /* ------------------------------------------------------------------- who */
@@ -412,6 +451,20 @@ el.composer.addEventListener('submit', async (event) => {
 el.cancelreply.addEventListener('click', () => {
   state.replyTo = null
   el.replynote.hidden = true
+})
+
+el.fingerprint.addEventListener('click', async () => {
+  if (!state.identity) return
+  const previous = el.fingerprint.textContent
+  try {
+    await navigator.clipboard.writeText(state.identity.author)
+    el.fingerprint.textContent = 'key copied'
+  } catch {
+    el.fingerprint.textContent = 'copy failed'
+  }
+  setTimeout(() => {
+    el.fingerprint.textContent = previous
+  }, 1200)
 })
 
 el.verify.addEventListener('click', () => verifyAll({ fresh: true }))

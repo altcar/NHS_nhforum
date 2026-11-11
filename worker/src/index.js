@@ -19,6 +19,14 @@ const boardStub = (env) => env.BOARD.get(env.BOARD.idFromName(env.BOARD_NAME || 
 
 const forward = (env, path, init) => boardStub(env).fetch(`https://do${path}`, init)
 
+/** Constant-time comparison, so the admin token cannot be guessed byte by byte. */
+async function sameSecret(provided, expected) {
+  if (typeof provided !== 'string' || typeof expected !== 'string') return false
+  if (provided.length === 0 || provided.length !== expected.length) return false
+  const encoder = new TextEncoder()
+  return crypto.subtle.timingSafeEqual(encoder.encode(provided), encoder.encode(expected))
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url)
@@ -35,6 +43,18 @@ export default {
     }
 
     if (pathname.startsWith('/api/')) {
+      if (pathname === '/api/admin/rules' && request.method === 'POST') {
+        if (!env.ADMIN_TOKEN) return json({ error: 'admin is disabled; set ADMIN_TOKEN' }, 503)
+        const provided = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '')
+        if (!(await sameSecret(provided, env.ADMIN_TOKEN))) return json({ error: 'forbidden' }, 403)
+        const body = await request.text()
+        return forward(env, '/admin/rules', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body,
+        })
+      }
+
       if (pathname === '/api/head' && request.method === 'GET') {
         return forward(env, `/head${url.search}`)
       }

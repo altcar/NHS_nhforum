@@ -70,6 +70,13 @@ export class Board {
       return json(outcome.body, outcome.status)
     }
 
+    if (path === '/admin/rules' && request.method === 'POST') {
+      const body = await request.json()
+      const outcome = await this.#serial(() => this.store.appendRules(body.mods))
+      if (outcome.status) return json(outcome.body, outcome.status)
+      return json(outcome)
+    }
+
     if (path === '/checkpoint' && request.method === 'POST') {
       const head = await this.#serial(() => this.store.ensureHead(0))
       return json(head)

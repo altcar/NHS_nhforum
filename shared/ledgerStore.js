@@ -11,6 +11,8 @@
 
 import {
   addLeaf,
+  assertPayload,
+  assertShape,
   blockBytes,
   blockHash,
   EMPTY_STATE,
@@ -175,8 +177,45 @@ export class LedgerStore {
     return describe({ ...entry, block })
   }
 
-  // --------------------------------------------------------------- private
+  /**
+   * Append a block signed by the board's writer key (the root key).
+   *
+   * Only used for `rules`, which appoints moderators. The writer cannot sign as
+   * a user, so this is the one thing it is trusted to do: name who may moderate.
+   * Caller must hold blockConcurrencyWhile.
+   */
+  async appendRules(mods) {
+    const payload = { mods }
 
+    // Validate the payload before anything is written: an invalid block must
+    // never enter the log, because it would break verification for everyone.
+    assertPayload('rules', payload)
+    if (!Array.isArray(mods) || mods.length === 0) {
+      throw new Error('rules must name at least one moderator')
+    }
+
+    const head = this.head()
+    const writer = await this.#writer()
+    const block = {
+      v: VERSION,
+      board: this.board,
+      seq: head ? head.seq + 1 : 0,
+      prev: head ? head.hash : ZERO_HASH,
+      type: 'rules',
+      author: writer.author,
+      ts: Date.now(),
+      payload,
+    }
+    block.sig = await signBytes(writer.privateKey, blockBytes(block))
+    assertShape(block)
+
+    const hash = await blockHash(block)
+    this.#insert(block, hash)
+    this.setMeta('peaks', JSON.stringify(await addLeaf(this.#peaks(), hash)))
+    return { seq: block.seq, hash }
+  }
+
+  // --------------------------------------------------------------- private
   #peaks() {
     const stored = this.meta('peaks')
     if (!stored) return { ...EMPTY_STATE }
