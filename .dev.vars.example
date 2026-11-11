@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `npm run dev`. Never commit the real file.
+#
+# Outbound email is optional. Posting works with no email at all.
+# Gmail requires 2-Step Verification, then an App Password:
+#   https://myaccount.google.com/apppasswords
+# Put the 16-character password here (spaces are fine, Gmail ignores them).
+GMAIL_USER=you@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx

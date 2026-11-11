@@ -1,0 +1,41 @@
+{
+  "note": "test keys — not secret, never use",
+  "keys": [
+    {
+      "key_ops": [
+        "sign"
+      ],
+      "ext": true,
+      "kty": "EC",
+      "x": "NPoWr9oTZ2Nwk-pRY1nLZvU_IsRjlSeyM-6V_EOArJI",
+      "y": "pbyQWyuKXvIbWaD5rFW-zTOQpc0w_FcVYkwgcLS7q2Y",
+      "crv": "P-256",
+      "d": "PdDTuzaGTW6kLILCNpg-Z8S5yn6RrP2gVph7ZYkPCfg",
+      "kid": "root"
+    },
+    {
+      "key_ops": [
+        "sign"
+      ],
+      "ext": true,
+      "kty": "EC",
+      "x": "iiAB5kJf75-MIv4VSZDbUZ_C6GnuBjtaSzlodqQ96rQ",
+      "y": "AzYsCPtfFOhJpINzFICJfdehKKCE3YNh3PHdgiv3Qy8",
+      "crv": "P-256",
+      "d": "XBmbaK2tLaetARjBlzRP4HuJSu57J56et-cuu-o5ouI",
+      "kid": "poster"
+    },
+    {
+      "key_ops": [
+        "sign"
+      ],
+      "ext": true,
+      "kty": "EC",
+      "x": "w5YN5Ib7Idx8bwNuiuDyUS84tVAzg34Ag3-Nqa3xbdU",
+      "y": "AaO-1St_GFy3SpU68IfXv8LVu5A-fv6UACr4Q-hZEcY",
+      "crv": "P-256",
+      "d": "exKCz5xNzkiD8f2hJmZ8wXSKYBFgsPera5z3yQ4iqmU",
+      "kid": "mod"
+    }
+  ]
+}

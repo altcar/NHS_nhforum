@@ -1,2 +1,12 @@
-server/node_modules/
-server/.env
+node_modules/
+.wrangler/
+dist/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.dev.vars
+
+# generated: scripts/build-assets.mjs copies ledger/ into each static dir
+web/ledger/
+realtime/web/ledger/

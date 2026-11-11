@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>nhforum — verifiable board</title>
+    <meta name="description" content="A forum whose history you can verify in your own browser." />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>◈</text></svg>" />
+  </head>
+  <body>
+    <a class="skip" href="#feed">skip to posts</a>
+
+    <header class="top">
+      <div class="brand">
+        <h1>nhforum</h1>
+        <p class="tag">a board that cannot lie about its own history</p>
+      </div>
+      <div class="who">
+        <span class="fp" id="fingerprint" title="your public key">…</span>
+        <button class="ghost" id="signin" type="button">verify a handle</button>
+      </div>
+    </header>
+
+    <section class="chain" aria-live="polite">
+      <div class="chainline">
+        <span class="pill" id="pill" data-state="checking">checking…</span>
+        <span class="chainmeta" id="chainmeta">—</span>
+      </div>
+      <div class="chainactions">
+        <button class="ghost" id="verify" type="button">verify again</button>
+        <button class="ghost" id="download" type="button">download chain</button>
+      </div>
+      <ul class="problems" id="problems"></ul>
+    </section>
+
+    <main>
+      <form class="composer" id="composer" autocomplete="off">
+        <label class="sr" for="body">your post</label>
+        <textarea id="body" name="body" rows="3" maxlength="4096" placeholder="say something…" required></textarea>
+        <div class="composerbar">
+          <span class="hint" id="hint">signed in this browser · nothing leaves unsigned</span>
+          <button type="submit" id="post">post</button>
+        </div>
+      </form>
+
+      <div class="replynote" id="replynote" hidden>
+        replying to <b id="replyto"></b>
+        <button class="linkish" id="cancelreply" type="button">cancel</button>
+      </div>
+
+      <ol class="feed" id="feed"></ol>
+      <p class="empty" id="empty" hidden>no posts yet. be the first block.</p>
+    </main>
+
+    <footer>
+      <p>
+        every post is signed by the browser that wrote it and chained to the one before.
+        <a href="https://github.com/altcar" rel="noreferrer">source</a>
+      </p>
+      <p class="dim">
+        hides are logged, not deleted. this is a verifiable log, not an uncensorable one.
+      </p>
+    </footer>
+
+    <dialog id="signinDialog">
+      <form method="dialog" class="dialogform" id="signinForm">
+        <h2>verify a handle</h2>
+        <p class="dim">
+          optional. posting works without it. we email you a link; it proves you can read
+          the inbox, nothing more. no password is ever created.
+        </p>
+        <label for="email">email</label>
+        <input id="email" name="email" type="email" required placeholder="you@example.com" />
+        <label for="handle">handle</label>
+        <input id="handle" name="handle" type="text" required placeholder="lowercase, 2–24 chars" pattern="[a-z0-9][a-z0-9_-]{1,23}" />
+        <p class="status" id="signinStatus" role="status"></p>
+        <div class="dialogactions">
+          <button type="button" class="ghost" id="cancelSignin">cancel</button>
+          <button type="submit" id="sendLink">send link</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,165 @@
+/**
+ * Generates spec/TEST-VECTORS.json.
+ *
+ * Deterministic content (canonical bytes, hashes, Merkle roots) is stable
+ * across runs. Signatures are randomised by ECDSA, so re-running rewrites the
+ * `sig` fields while every hash stays identical — that is the point: the
+ * vectors prove the hash does not depend on the signature.
+ *
+ * Usage: npm run vectors
+ */
+
+import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { canon } from '../ledger/canon.js'
+import { blockBytes, blockHash, VERSION } from '../ledger/block.js'
+import { merkleRoot, inclusionProof } from '../ledger/merkle.js'
+import { sha256Hex, ZERO_HASH } from '../ledger/hash.js'
+import { signBytes } from '../ledger/sign.js'
+
+const here = dirname(fileURLToPath(import.meta.url))
+const root = join(here, '..')
+const keyPath = join(root, 'spec', 'test-keys.json')
+const outPath = join(root, 'spec', 'TEST-VECTORS.json')
+
+const ALG = { name: 'ECDSA', namedCurve: 'P-256' }
+const SIGN = { name: 'ECDSA', hash: 'SHA-256' }
+
+async function loadOrCreateKeys() {
+  if (existsSync(keyPath)) {
+    const saved = JSON.parse(await readFile(keyPath, 'utf8'))
+    const keys = []
+    for (const jwk of saved.keys) {
+      const privateKey = await crypto.subtle.importKey('jwk', jwk, ALG, true, ['sign'])
+      const publicKey = await crypto.subtle.importKey(
+        'jwk',
+        { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y, ext: true },
+        ALG,
+        true,
+        ['verify'],
+      )
+      const raw = new Uint8Array(await crypto.subtle.exportKey('raw', publicKey))
+      const { b64uEncode } = await import('../ledger/base64.js')
+      keys.push({ privateKey, author: b64uEncode(raw) })
+    }
+    return keys
+  }
+
+  const keys = []
+  const saved = []
+  for (const name of ['root', 'poster', 'mod']) {
+    const pair = await crypto.subtle.generateKey(ALG, true, ['sign', 'verify'])
+    const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey)
+    const raw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey))
+    const { b64uEncode } = await import('../ledger/base64.js')
+    keys.push({ privateKey: pair.privateKey, author: b64uEncode(raw), name })
+    saved.push({ ...jwk, kid: name })
+  }
+  await mkdir(dirname(keyPath), { recursive: true })
+  await writeFile(keyPath, JSON.stringify({ note: 'test keys — not secret, never use', keys: saved }, null, 2) + '\n')
+  return keys
+}
+
+const keys = await loadOrCreateKeys()
+const [rootKey, poster, mod] = keys
+
+const TS = 1_700_000_000_000
+const constants = await Promise.all([
+  sha256Hex(''),
+  sha256Hex('abc'),
+  sha256Hex('nhforum'),
+])
+
+// ---------------------------------------------------------------- canonical
+const canonCases = [
+  { value: null, expected: 'null' },
+  { value: true, expected: 'true' },
+  { value: 0, expected: '0' },
+  { value: -42, expected: '-42' },
+  { value: 'hello', expected: '"hello"' },
+  { value: 'é', expected: '"é"' },
+  { value: 'a\nb', expected: '"a\\nb"' },
+  { value: [], expected: '[]' },
+  { value: {}, expected: '{}' },
+  { value: { b: 1, a: 2 }, expected: '{"a":2,"b":1}' },
+  { value: [{ z: 1, a: [true, null] }], expected: '[{"a":[true,null],"z":1}]' },
+]
+
+// ------------------------------------------------------------------- merkle
+const merkleCases = []
+for (let size = 1; size <= 8; size++) {
+  const leaves = []
+  for (let i = 0; i < size; i++) leaves.push(await sha256Hex(`vector-leaf-${i}`))
+  const rootHash = await merkleRoot(leaves)
+  const proofs = []
+  for (let index = 0; index < size; index++) {
+    proofs.push({ index, proof: await inclusionProof(leaves, index) })
+  }
+  merkleCases.push({ size, leaves, root: rootHash, proofs })
+}
+
+// -------------------------------------------------------------------- chain
+const blocks = []
+const state = { seq: 0, prev: ZERO_HASH }
+
+async function emit(type, payload, key) {
+  const header = {
+    v: VERSION,
+    board: 'general',
+    seq: state.seq,
+    prev: state.prev,
+    type,
+    author: key.author,
+    ts: TS + state.seq * 1000,
+    payload,
+  }
+  const sig = await signBytes(key.privateKey, blockBytes(header))
+  const block = { ...header, sig }
+  blocks.push(block)
+  state.seq += 1
+  state.prev = await blockHash(block)
+  return block
+}
+
+await emit('genesis', {}, rootKey)
+const post = await emit('post', { body: 'the first post' }, poster)
+await emit('rules', { mods: [mod.author] }, rootKey)
+await emit('mod.hide', { target: await blockHash(post), reason: 'off-topic' }, mod)
+
+const hashesBeforeCheckpoint = []
+for (const block of blocks) hashesBeforeCheckpoint.push(await blockHash(block))
+const checkpoint = await emit(
+  'checkpoint',
+  { size: blocks.length, root: await merkleRoot(hashesBeforeCheckpoint) },
+  rootKey,
+)
+
+const hashes = []
+for (const block of blocks) hashes.push(await blockHash(block))
+
+const vectors = {
+  _note:
+    'Generated by scripts/gen-vectors.mjs. Hashes are deterministic; signatures are randomised by ECDSA so only verification is guaranteed, not equality.',
+  version: VERSION,
+  generatedAt: new Date().toISOString(),
+  sha256: { '': constants[0], abc: constants[1], nhforum: constants[2] },
+  canon: canonCases,
+  merkle: merkleCases,
+  chain: {
+    board: 'general',
+    blocks,
+    hashes,
+    root: await merkleRoot(hashes),
+    head: { seq: blocks.length - 1, hash: hashes[hashes.length - 1] },
+    checkpoint: { seq: checkpoint.seq, root: checkpoint.payload.root, size: checkpoint.payload.size },
+  },
+}
+
+await writeFile(outPath, JSON.stringify(vectors, null, 2) + '\n')
+console.log(`wrote ${outPath}`)
+console.log(`  ${canonCases.length} canonical cases`)
+console.log(`  ${merkleCases.length} merkle sizes`)
+console.log(`  ${blocks.length} blocks, head seq ${vectors.chain.head.seq}`)

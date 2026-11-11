@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>nhs-epqsocketio — live signed board</title>
+    <meta name="description" content="A live board where every message is signed and chained. WebSockets on Workers." />
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>◈</text></svg>" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <h1>live board</h1>
+        <p class="tag">
+          the socket.io demo, rebuilt on Workers — native WebSockets, one writer, signed blocks
+        </p>
+      </div>
+      <div class="conn" id="conn" data-state="connecting">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="connText">connecting…</span>
+      </div>
+    </header>
+
+    <section class="strip">
+      <div class="striprow">
+        <span class="pill" id="pill" data-state="checking">checking chain…</span>
+        <span class="meta" id="meta">—</span>
+      </div>
+      <div class="striprow right">
+        <span class="meta" id="peers">0 listeners</span>
+        <button class="ghost" id="verify" type="button">verify chain</button>
+      </div>
+    </section>
+
+    <main>
+      <form class="composer" id="composer" autocomplete="off">
+        <label class="sr" for="body">message</label>
+        <textarea id="body" rows="2" maxlength="4096" placeholder="say something — it will be signed and chained" required></textarea>
+        <div class="bar">
+          <span class="hint" id="hint">every message is a signed block</span>
+          <button type="submit" id="send">send</button>
+        </div>
+      </form>
+
+      <ol class="feed" id="feed"></ol>
+      <p class="empty" id="empty" hidden>nothing yet. send the first block.</p>
+    </main>
+
+    <footer>
+      <p>
+        transport: WebSocket to a Durable Object (hibernating).
+        storage: that object's SQLite. verification: the same ledger module the server runs.
+      </p>
+      <p class="dim">
+        socket.io itself cannot run on Workers — it needs a persistent Node process and an HTTP
+        long-poll fallback. This does what it was for, without it.
+      </p>
+    </footer>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

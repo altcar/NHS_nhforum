@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nhforum",
+  "main": "worker/src/index.js",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./web",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "BOARD", "class_name": "Board" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Board"] }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "nhforum",
+      "database_id": "89420683-2b97-4d04-bf28-61d61c6c7aab"
+    }
+  ],
+  "triggers": { "crons": ["7 * * * *"] },
+  "observability": { "enabled": true },
+  "vars": {
+    "BOARD_NAME": "general",
+    "PUBLIC_ORIGIN": "https://nhforum.hheylau.workers.dev"
+  }
+}
